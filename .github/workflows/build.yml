@@ -25,23 +25,33 @@ jobs:
           mkdir android-project
           unzip -q GameTranslatorAI.zip -d android-project
 
-      - name: Encontrar projeto Android
+      - name: Encontrar projeto
         run: |
           PROJECT_DIR=$(find android-project -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \) -print -quit | xargs dirname)
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
+      - name: Instalar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
       - name: Compilar APK
-  run: |
-    cd "$PROJECT_DIR"
-    gradle assembleDebug --no-daemon 
+        run: |
+          cd "$PROJECT_DIR"
+          gradle assembleDebug --no-daemon
 
       - name: Encontrar APK
         run: |
           APK=$(find "$PROJECT_DIR" -type f -name "*.apk" | head -n 1)
-          echo "APK=$APK" >> "$GITHUB_ENV"
+          if [ -z "$APK" ]; then
+            echo "Nenhum APK foi encontrado."
+            exit 1
+          fi
+          echo "APK encontrado: $APK"
+          cp "$APK" "$GITHUB_WORKSPACE/GameTranslatorAI.apk"
 
       - name: Publicar APK
         uses: actions/upload-artifact@v4
         with:
           name: GameTranslatorAI-APK
-          path: ${{ env.APK }}
+          path: GameTranslatorAI.apk
