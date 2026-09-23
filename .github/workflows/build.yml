@@ -1,0 +1,47 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar arquivos do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Extrair projeto Android
+        run: |
+          mkdir android-project
+          unzip -q GameTranslatorAI.zip -d android-project
+
+      - name: Encontrar projeto
+        run: |
+          PROJECT_DIR=$(find android-project -name settings.gradle.kts -o -name settings.gradle | head -n 1 | xargs dirname)
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Compilar APK
+        run: |
+          cd "$PROJECT_DIR"
+          gradle assembleRelease --no-daemon
+
+      - name: Enviar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: GameTranslatorAI-APK
+          path: '**/build/outputs/apk/release/*.apk'
